@@ -1,0 +1,218 @@
+import face_recognition
+import cv2
+import numpy as np
+import os
+import pickle
+from datetime import datetime
+from tkinter import *
+from tkinter import messagebox
+from tkinter import filedialog
+
+# Utility Functions
+def save_known_faces(encodings, names, filename="known_faces.pkl"):
+    data = {"encodings": encodings, "names": names}
+    with open(filename, "wb") as file:
+        pickle.dump(data, file)
+
+def load_known_faces(filename="known_faces.pkl"):
+    if os.path.exists(filename):
+        with open(filename, "rb") as file:
+            data = pickle.load(file)
+            return data["encodings"], data["names"]
+    return [], []
+
+def log_recognized_face(name):
+    with open("recognition_log.txt", "a") as log_file:
+        log_file.write(f"{name} recognized at {datetime.now()}\n")
+
+# Facial Recognition Functions
+def encode_faces_in_folder(folder):
+    images = []
+    names = []
+    for filename in os.listdir(folder):
+        if filename.endswith((".jpg", ".png")):
+            img = face_recognition.load_image_file(os.path.join(folder, filename))
+            images.append(img)
+            names.append(os.path.splitext(filename)[0])
+    encodings = [face_recognition.face_encodings(img)[0] for img in images if face_recognition.face_encodings(img)]
+    return encodings, names
+
+def recognize_faces_in_frame(frame, known_encodings, known_names):
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    face_locations = face_recognition.face_locations(rgb_frame)
+    face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+    face_names = []
+    for face_encoding in face_encodings:
+        matches = face_recognition.compare_faces(known_encodings, face_encoding)
+        name = "Unknown"
+
+        face_distances = face_recognition.face_distance(known_encodings, face_encoding)
+        best_match_index = np.argmin(face_distances)
+        if matches[best_match_index]:
+            name = known_names[best_match_index]
+            log_recognized_face(name)
+        face_names.append(name)
+
+    return face_locations, face_names
+
+def draw_face_boxes(frame, face_locations, face_names):
+    for (top, right, bottom, left), name in zip(face_locations, face_names):
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+
+# GUI Functions
+def browse_folder():
+    folder = filedialog.askdirectory()
+    known_encodings, known_names = encode_faces_in_folder(folder)
+    save_known_faces(known_encodings, known_names)
+    messagebox.showinfo("Info", f"Encoded faces from {len(known_names)} images.")
+
+def start_video_recognition():
+    known_encodings, known_names = load_known_faces()
+    video_capture = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+
+        face_locations, face_names = recognize_faces_in_frame(frame, known_encodings, known_names)
+        draw_face_boxes(frame, face_locations, face_names)
+
+        cv2.imshow('Video', frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+def show_recognition_log():
+    if os.path.exists("recognition_log.txt"):
+        with open("recognition_log.txt", "r") as log_file:
+            logs = log_file.read()
+            log_window = Toplevel(root)
+            log_window.title("Recognition Log")
+            log_text = Text(log_window, wrap=WORD)
+            log_text.insert(1.0, logs)
+            log_text.pack(expand=1, fill=BOTH)
+    else:
+        messagebox.showinfo("Info", "No recognition log found.")
+
+# Main Application
+root = Tk()
+root.title("Face Recognition System")
+
+label = Label(root, text="Face Recognition System", font=("Helvetica", 16))
+label.pack(pady=10)
+
+browse_button = Button(root, text="Encode Faces from Folder", command=browse_folder, font=("Helvetica", 12))
+browse_button.pack(pady=5)
+
+start_button = Button(root, text="Start Video Recognition", command=start_video_recognition, font=("Helvetica", 12))
+start_button.pack(pady=5)
+
+log_button = Button(root, text="Show Recognition Log", command=show_recognition_log, font=("Helvetica", 12))
+log_button.pack(pady=5)
+
+exit_button = Button(root, text="Exit", command=root.quit, font=("Helvetica", 12))
+exit_button.pack(pady=20)
+
+root.mainloop()
+
+# Advanced Features
+def detect_facial_landmarks(image):
+    face_landmarks_list = face_recognition.face_landmarks(image)
+    for face_landmarks in face_landmarks_list:
+        for landmark in face_landmarks.values():
+            for point in landmark:
+                cv2.circle(image, point, 2, (0, 255, 0), -1)
+
+def detect_emotions(image):
+    # Placeholder for emotion detection logic
+    # Implement emotion detection using a pre-trained model, e.g., FER, deepface, etc.
+    pass
+
+def recognize_faces_in_video(video_path, known_encodings, known_names):
+    video_capture = cv2.VideoCapture(video_path)
+    frame_number = 0
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+        frame_number += 1
+
+        face_locations, face_names = recognize_faces_in_frame(frame, known_encodings, known_names)
+        draw_face_boxes(frame, face_locations, face_names)
+
+        detect_facial_landmarks(frame)
+        detect_emotions(frame)
+
+        cv2.imshow('Video', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+def start_video_recognition_with_landmarks():
+    known_encodings, known_names = load_known_faces()
+    video_capture = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+
+        face_locations, face_names = recognize_faces_in_frame(frame, known_encodings, known_names)
+        draw_face_boxes(frame, face_locations, face_names)
+        detect_facial_landmarks(frame)
+        detect_emotions(frame)
+
+        cv2.imshow('Video', frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+# Adding extra GUI features for the advanced functionalities
+def browse_video_file():
+    file_path = filedialog.askopenfilename(filetypes=[("Video files", "*.mp4;*.avi;*.mov")])
+    known_encodings, known_names = load_known_faces()
+    recognize_faces_in_video(file_path, known_encodings, known_names)
+
+advanced_label = Label(root, text="Advanced Features", font=("Helvetica", 14))
+advanced_label.pack(pady=10)
+
+landmarks_button = Button(root, text="Start Video Recognition with Landmarks", command=start_video_recognition_with_landmarks, font=("Helvetica", 12))
+landmarks_button.pack(pady=5)
+
+video_button = Button(root, text="Recognize Faces in Video File", command=browse_video_file, font=("Helvetica", 12))
+video_button.pack(pady=5)
+
+# Mock implementation for emotion detection
+def detect_emotions(image):
+    emotions = ["Happy", "Sad", "Angry", "Surprised", "Neutral"]
+    emotion_detected = np.random.choice(emotions)
+    cv2.putText(image, f"Emotion: {emotion_detected}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+
+# Additional example of reading a list of images for batch processing
+def process_image_folder_for_recognition(folder_path):
+    known_encodings, known_names = load_known_faces()
+    for image_name in os.listdir(folder_path):
+        if image_name.endswith((".jpg", ".png")):
+            image_path = os.path.join(folder_path, image_name)
+            image = face_recognition.load_image_file(image_path)
+            face_locations, face_names = recognize_faces_in_frame(image, known_encodings, known_names)
+            print(f"Processing {image_name}: Recognized Faces: {face_names}")
+
+# Example usage of the batch processing function
+batch_process_button = Button(root, text="Process Image Folder for Recognition", font=("Helvetica", 12), command=lambda: process_image_folder_for_recognition(filedialog.askdirectory()))
+batch_process_button.pack(pady=5)
+
+root.mainloop()
