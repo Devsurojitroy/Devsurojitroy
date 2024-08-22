@@ -1,0 +1,176 @@
+import math
+
+# Operation functions
+def add(x, y):
+    return x + y
+
+def subtract(x, y):
+    return x - y
+
+def multiply(x, y):
+    return x * y
+
+def divide(x, y):
+    if y == 0:
+        return "Error! Division by zero."
+    return x / y
+
+def exponentiate(base, exp):
+    return base ** exp
+
+def modulus(x, y):
+    return x % y
+
+def square_root(x):
+    if x < 0:
+        return "Error! Cannot take the square root of a negative number."
+    return math.sqrt(x)
+
+# Scientific functions
+def sine(x):
+    return math.sin(math.radians(x))
+
+def cosine(x):
+    return math.cos(math.radians(x))
+
+def tangent(x):
+    return math.tan(math.radians(x))
+
+def logarithm(x, base=10):
+    if x <= 0:
+        return "Error! Logarithm undefined for non-positive values."
+    return math.log(x, base)
+
+# Calculator history tracking
+history = []
+
+def add_to_history(operation, result):
+    history.append(f"{operation} = {result}")
+
+def print_history():
+    if history:
+        print("\nCalculation History:")
+        for entry in history:
+            print(entry)
+    else:
+        print("\nNo history available.")
+
+# Calculator interface
+def basic_calculator():
+    print("\n--- Basic Calculator ---")
+    print("1. Add")
+    print("2. Subtract")
+    print("3. Multiply")
+    print("4. Divide")
+    
+    choice = input("Enter choice (1/2/3/4): ")
+    
+    if choice in ['1', '2', '3', '4']:
+        num1 = float(input("Enter first number: "))
+        num2 = float(input("Enter second number: "))
+        
+        if choice == '1':
+            result = add(num1, num2)
+            print(f"{num1} + {num2} = {result}")
+            add_to_history(f"{num1} + {num2}", result)
+        
+        elif choice == '2':
+            result = subtract(num1, num2)
+            print(f"{num1} - {num2} = {result}")
+            add_to_history(f"{num1} - {num2}", result)
+        
+        elif choice == '3':
+            result = multiply(num1, num2)
+            print(f"{num1} * {num2} = {result}")
+            add_to_history(f"{num1} * {num2}", result)
+        
+        elif choice == '4':
+            result = divide(num1, num2)
+            print(f"{num1} / {num2} = {result}")
+            add_to_history(f"{num1} / {num2}", result)
+    else:
+        print("Invalid input!")
+
+def scientific_calculator():
+    print("\n--- Scientific Calculator ---")
+    print("1. Exponentiation")
+    print("2. Modulus")
+    print("3. Square Root")
+    print("4. Sine")
+    print("5. Cosine")
+    print("6. Tangent")
+    print("7. Logarithm")
+    
+    choice = input("Enter choice (1/2/3/4/5/6/7): ")
+    
+    if choice in ['1', '2', '3', '4', '5', '6', '7']:
+        num1 = float(input("Enter the number: "))
+        
+        if choice == '1':
+            exp = float(input("Enter the exponent: "))
+            result = exponentiate(num1, exp)
+            print(f"{num1} ^ {exp} = {result}")
+            add_to_history(f"{num1} ^ {exp}", result)
+        
+        elif choice == '2':
+            num2 = float(input("Enter the divisor: "))
+            result = modulus(num1, num2)
+            print(f"{num1} % {num2} = {result}")
+            add_to_history(f"{num1} % {num2}", result)
+        
+        elif choice == '3':
+            result = square_root(num1)
+            print(f"√{num1} = {result}")
+            add_to_history(f"√{num1}", result)
+        
+        elif choice == '4':
+            result = sine(num1)
+            print(f"sin({num1}) = {result}")
+            add_to_history(f"sin({num1})", result)
+        
+        elif choice == '5':
+            result = cosine(num1)
+            print(f"cos({num1}) = {result}")
+            add_to_history(f"cos({num1})", result)
+        
+        elif choice == '6':
+            result = tangent(num1)
+            print(f"tan({num1}) = {result}")
+            add_to_history(f"tan({num1})", result)
+        
+        elif choice == '7':
+            base = float(input("Enter the base (default is 10): ") or 10)
+            result = logarithm(num1, base)
+            print(f"log({num1}, base {base}) = {result}")
+            add_to_history(f"log({num1}, base {base})", result)
+    else:
+        print("Invalid input!")
+
+def main_menu():
+    while True:
+        print("\n--- Main Menu ---")
+        print("1. Basic Calculator")
+        print("2. Scientific Calculator")
+        print("3. View Calculation History")
+        print("4. Clear Calculation History")
+        print("5. Exit")
+        
+        choice = input("Enter choice (1/2/3/4/5): ")
+        
+        if choice == '1':
+            basic_calculator()
+        elif choice == '2':
+            scientific_calculator()
+        elif choice == '3':
+            print_history()
+        elif choice == '4':
+            history.clear()
+            print("\nHistory cleared.")
+        elif choice == '5':
+            print("Exiting calculator. Goodbye!")
+            break
+        else:
+            print("Invalid input!")
+
+# Run the calculator
+main_menu()
