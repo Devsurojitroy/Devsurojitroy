@@ -1,0 +1,153 @@
+import random
+from PIL import Image, ImageDraw, ImageFont
+import textwrap
+
+# Define word banks and phrases for lyrics
+subjects = ["I", "You", "We", "They", "She", "He", "It", "My heart", "Your soul"]
+verbs = ["love", "hate", "miss", "see", "find", "feel", "want", "dream", "believe", "cherish"]
+objects = ["the night", "the stars", "the moon", "our dreams", "your smile", "the light", "the rain", "the sea", "the sky"]
+adjectives = ["bright", "dark", "silent", "sweet", "lonely", "fading", "cold", "warm", "clear", "empty"]
+adverbs = ["slowly", "gently", "quickly", "loudly", "silently", "softly", "patiently", "recklessly"]
+nouns = ["heart", "soul", "world", "sky", "life", "time", "space", "hope", "fear", "love"]
+prepositions = ["under", "over", "through", "between", "beyond", "within", "around", "inside"]
+conjunctions = ["and", "but", "or", "so", "because", "while", "although", "unless", "since"]
+rhymes = {
+    "night": ["bright", "light", "fight", "sight"],
+    "moon": ["soon", "tune", "croon", "gloom"],
+    "stars": ["cars", "bars", "wars", "guitars"],
+    "smile": ["style", "while", "miles", "exile"],
+    "dreams": ["seams", "streams", "beams", "themes"],
+    "love": ["above", "dove", "glove", "shove"],
+    "heart": ["start", "part", "art", "chart"],
+    "sky": ["high", "fly", "cry", "goodbye"]
+}
+
+# Define structures for different parts of the song
+verse_structure = ["subject", "verb", "object", "adjective"]
+chorus_structure = ["subject", "verb", "object", "adjective", "adverb"]
+bridge_structure = ["noun", "verb", "preposition", "object"]
+hook_structure = ["subject", "verb", "object", "conjunction", "subject", "verb", "object"]
+
+def choose_rhyming_word(word):
+    """Choose a rhyming word if available, otherwise return the original word."""
+    return random.choice(rhymes.get(word, [word]))
+
+def generate_line(structure, end_rhyme=None):
+    """Generate a line based on the given structure and optional end rhyme."""
+    line = []
+    for part in structure:
+        if part == "subject":
+            line.append(random.choice(subjects))
+        elif part == "verb":
+            line.append(random.choice(verbs))
+        elif part == "object":
+            obj = random.choice(objects)
+            if end_rhyme and obj in rhymes:
+                obj = choose_rhyming_word(obj)
+            line.append(obj)
+        elif part == "adjective":
+            line.append(random.choice(adjectives))
+        elif part == "adverb":
+            line.append(random.choice(adverbs))
+        elif part == "noun":
+            line.append(random.choice(nouns))
+        elif part == "preposition":
+            line.append(random.choice(prepositions))
+        elif part == "conjunction":
+            line.append(random.choice(conjunctions))
+    return " ".join(line).capitalize()
+
+def generate_verse(end_rhyme=None):
+    """Generate a verse with optional end rhyme."""
+    return "\n".join(generate_line(verse_structure, end_rhyme) for _ in range(4))
+
+def generate_chorus(end_rhyme=None):
+    """Generate a chorus with optional end rhyme."""
+    return "\n".join(generate_line(chorus_structure, end_rhyme) for _ in range(4))
+
+def generate_bridge(end_rhyme=None):
+    """Generate a bridge with optional end rhyme."""
+    return "\n".join(generate_line(bridge_structure, end_rhyme) for _ in range(4))
+
+def generate_hook(end_rhyme=None):
+    """Generate a hook with optional end rhyme."""
+    return "\n".join(generate_line(hook_structure, end_rhyme) for _ in range(2))
+
+def adapt_lyrics(existing_lyrics):
+    """Adapt lyrics by modifying and blending phrases from existing lyrics."""
+    lines = existing_lyrics.split("\n")
+    adapted_lines = []
+    for line in lines:
+        words = line.split()
+        adapted_line = []
+        for word in words:
+            if word in rhymes:
+                adapted_line.append(choose_rhyming_word(word))
+            else:
+                adapted_line.append(word)
+        adapted_lines.append(" ".join(adapted_line))
+    return "\n".join(adapted_lines)
+
+def generate_song(num_verses=2, num_choruses=2, num_bridges=1, include_hook=True, use_adaptation=False):
+    """Generate a full song with the specified number of verses, choruses, and bridges."""
+    song = []
+    end_rhyme = None
+    for _ in range(num_verses):
+        verse = generate_verse(end_rhyme)
+        if use_adaptation:
+            verse = adapt_lyrics(verse)
+        song.append(verse)
+        end_rhyme = verse.split()[-1]  # Use the last word of the verse as rhyme for the chorus
+        chorus = generate_chorus(end_rhyme)
+        if use_adaptation:
+            chorus = adapt_lyrics(chorus)
+        song.append(chorus)
+    if include_hook:
+        hook = generate_hook(end_rhyme)
+        if use_adaptation:
+            hook = adapt_lyrics(hook)
+        song.append(hook)
+    for _ in range(num_bridges):
+        bridge = generate_bridge(end_rhyme)
+        if use_adaptation:
+            bridge = adapt_lyrics(bridge)
+        song.append(bridge)
+    final_chorus = generate_chorus(end_rhyme)  # End with chorus
+    if use_adaptation:
+        final_chorus = adapt_lyrics(final_chorus)
+    song.append(final_chorus)
+    return "\n\n".join(song)
+
+def create_cover_image(lyrics, title="Song Title", filename="cover_image.png"):
+    """Create a cover image with the provided lyrics and title."""
+    # Create a blank image with white background
+    width, height = 800, 600
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    
+    # Load a font
+    try:
+        font_title = ImageFont.truetype("arial.ttf", 50)
+        font_lyrics = ImageFont.truetype("arial.ttf", 30)
+    except IOError:
+        font_title = ImageFont.load_default()
+        font_lyrics = ImageFont.load_default()
+    
+    # Title
+    title_text = textwrap.fill(title, width=30)
+    title_position = (50, 50)
+    draw.text(title_position, title_text, font=font_title, fill="black")
+    
+    # Lyrics
+    lyrics_text = textwrap.fill(lyrics, width=40)
+    lyrics_position = (50, 150)
+    draw.text(lyrics_position, lyrics_text, font=font_lyrics, fill="black")
+    
+    # Save the image
+    image.save(filename)
+
+# Generate song lyrics
+lyrics = generate_song(num_verses=2, num_choruses=2, num_bridges=1, include_hook=True, use_adaptation=True)
+
+# Generate and save the cover image
+create_cover_image(lyrics, title="My New Song", filename="cover_image.png")
