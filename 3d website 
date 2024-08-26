@@ -1,0 +1,133 @@
+html
+.
+.
+.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Carousel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="scene">
+        <div class="carousel">
+            <div class="carousel__cell">1</div>
+            <div class="carousel__cell">2</div>
+            <div class="carousel__cell">3</div>
+            <div class="carousel__cell">4</div>
+            <div class="carousel__cell">5</div>
+            <div class="carousel__cell">6</div>
+        </div>
+    </div>
+    <div class="controls">
+        <button id="prev">Prev</button>
+        <button id="next">Next</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+.
+.
+.
+css
+.
+.
+.
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background: linear-gradient(45deg, #1a2a6c, #b21f1f, #fdbb2d);
+    font-family: 'Arial', sans-serif;
+    color: white;
+    overflow: hidden;
+}
+
+.scene {
+    width: 300px;
+    height: 300px;
+    perspective: 1000px;
+}
+
+.carousel {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    transform-style: preserve-3d;
+    transform: translateZ(-288px) rotateY(0deg);
+    transition: transform 1s;
+}
+
+.carousel__cell {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    left: 50px;
+    top: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    text-align: center;
+    line-height: 200px;
+    font-size: 40px;
+    transition: transform 1s, opacity 1s;
+}
+
+.controls {
+    margin-top: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 0 10px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+/* Carousel rotation logic */
+.carousel__cell:nth-child(1) { transform: rotateY(0deg) translateZ(288px); }
+.carousel__cell:nth-child(2) { transform: rotateY(60deg) translateZ(288px); }
+.carousel__cell:nth-child(3) { transform: rotateY(120deg) translateZ(288px); }
+.carousel__cell:nth-child(4) { transform: rotateY(180deg) translateZ(288px); }
+.carousel__cell:nth-child(5) { transform: rotateY(240deg) translateZ(288px); }
+.carousel__cell:nth-child(6) { transform: rotateY(300deg) translateZ(288px); }
+.
+.
+.
+.
+JavaScript 
+.
+.
+.
+const carousel = document.querySelector('.carousel');
+const cells = carousel.querySelectorAll('.carousel__cell');
+const cellCount = cells.length;
+let selectedIndex = 0;
+
+document.querySelector('#prev').addEventListener('click', () => {
+    selectedIndex--;
+    rotateCarousel();
+});
+
+document.querySelector('#next').addEventListener('click', () => {
+    selectedIndex++;
+    rotateCarousel();
+});
+
+function rotateCarousel() {
+    const angle = (selectedIndex / cellCount) * -360;
+    carousel.style.transform = `translateZ(-288px) rotateY(${angle}deg)`;
+}
