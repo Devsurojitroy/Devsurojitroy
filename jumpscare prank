@@ -1,0 +1,257 @@
+
+.html
+.
+.
+.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Tranquil Place</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="content">
+        <h1 id="mainText">Welcome to Tranquility</h1>
+        <p id="subText">Relax, breathe, and let go...</p>
+    </div>
+    <div class="jump-scare" id="jumpScare">
+        <img src="scary_image.jpg" alt="Scary Image">
+        <audio id="screamSound">
+            <source src="scream.mp3" type="audio/mp3">
+        </audio>
+    </div>
+    <audio id="creepyMusic">
+        <source src="creepy_music.mp3" type="audio/mp3">
+    </audio>
+    <script src="script.js"></script>
+</body>
+</html>
+.
+.
+.
+.
+.
+css
+.
+.
+.
+.
+body {
+    font-family: 'Times New Roman', serif;
+    background-color: #f0f0f0;
+    color: #222;
+    text-align: center;
+    padding: 50px;
+    transition: background-color 5s ease;
+    animation: bgFadeIn 300s forwards; /* Slowly darken the background over 5 minutes */
+}
+
+.content {
+    font-size: 24px;
+    transition: color 5s ease;
+    animation: textColorFadeIn 300s forwards; /* Slowly change text color over 5 minutes */
+}
+
+@keyframes bgFadeIn {
+    0% {
+        background-color: #f0f0f0;
+    }
+    100% {
+        background-color: #000;
+    }
+}
+
+@keyframes textColorFadeIn {
+    0% {
+        color: #222;
+    }
+    100% {
+        color: #ddd;
+    }
+}
+
+.jump-scare {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: flicker 0.05s infinite, bgPulse 5s infinite alternate;
+}
+
+.jump-scare img {
+    max-width: 90%;
+    max-height: 90%;
+    animation: zoomIn 0.3s ease-in-out, shakeAndPulse 0.5s infinite;
+}
+
+@keyframes flicker {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.2);
+    }
+}
+
+@keyframes bgPulse {
+    0% {
+        background-color: black;
+    }
+    100% {
+        background-color: #111;
+    }
+}
+
+@keyframes shakeAndPulse {
+    0%, 100% { transform: translate(0, 0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-10px, 0) scale(1.1); }
+    20%, 40%, 60%, 80% { transform: translate(10px, 0) scale(0.9); }
+}
+.
+.
+.
+.
+.
+.
+JavaScript 
+.
+.
+.
+window.onload = function() {
+    let mainText = document.getElementById("mainText");
+    let subText = document.getElementById("subText");
+    let body = document.body;
+    let creepyMusic = document.getElementById("creepyMusic");
+    let eventSequence = [];
+    
+    // Part 1: Initiate background music
+    eventSequence.push(setTimeout(function() {
+        creepyMusic.play();
+    }, 3000)); // Music starts after 3 seconds
+
+    // Part 2: Background and text color change
+    eventSequence.push(setTimeout(function() {
+        body.style.backgroundColor = "#333";
+        mainText.style.color = "#ddd";
+    }, 12000)); // Change occurs after 12 seconds
+
+    // Part 3: Subtle changes to main text and subtext to create unease
+    eventSequence.push(setTimeout(function() {
+        mainText.innerText = "Isn't this too quiet?";
+        subText.innerText = "Maybe... something is coming.";
+    }, 18000)); // Text changes after 18 seconds
+
+    eventSequence.push(setTimeout(function() {
+        mainText.innerText = "Do you feel that chill?";
+        subText.innerText = "It's just the wind... or is it?";
+    }, 24000)); // Text changes after 24 seconds
+
+    // Part 4: Begin subtle screen flickering and random sounds
+    eventSequence.push(setTimeout(function() {
+        flickerScreen();
+        playRandomSounds();
+    }, 30000)); // Effects start after 30 seconds
+
+    // Part 5: More text changes, increasing intensity
+    eventSequence.push(setTimeout(function() {
+        mainText.innerText = "Something is definitely not right...";
+        subText.innerText = "Stay calm. It will pass.";
+    }, 36000)); // Text changes after 36 seconds
+
+    eventSequence.push(setTimeout(function() {
+        mainText.innerText = "It's getting closer...";
+        subText.innerText = "Can you hear it?";
+    }, 42000)); // Text changes after 42 seconds
+
+    eventSequence.push(setTimeout(function() {
+        mainText.innerText = "Almost here...";
+        subText.innerText = "Brace yourself.";
+    }, 48000)); // Text changes after 48 seconds
+
+    // Part 6: Increase the frequency and intensity of flickering and sounds
+    eventSequence.push(setTimeout(function() {
+        flickerScreen(200); // Faster flickering
+        playRandomSounds(1000); // More frequent sounds
+    }, 54000)); // Increased intensity after 54 seconds
+
+    // Part 7: Fake scare (a minor scare to build false sense of security)
+    eventSequence.push(setTimeout(function() {
+        let jumpScare = document.getElementById("jumpScare");
+        jumpScare.style.display = "flex";
+        setTimeout(function() {
+            jumpScare.style.display = "none";
+        }, 500); // Quick scare for 0.5 seconds
+    }, 60000)); // Fake scare at 60 seconds
+
+    // Part 8: Text completely changes to full alert mode
+    eventSequence.push(setTimeout(function() {
+        mainText.innerText = "GET OUT NOW!";
+        subText.innerText = "It's too late...";
+    }, 66000)); // Final text changes after 66 seconds
+
+    // Part 9: The final, ultimate jump scare
+    eventSequence.push(setTimeout(function() {
+        let jumpScare = document.getElementById("jumpScare");
+        let screamSound = document.getElementById("screamSound");
+
+        jumpScare.style.display = "flex";
+        screamSound.play();
+
+        // Intensify the scare by shaking the screen
+        setTimeout(function() {
+            document.body.classList.add('shake');
+        }, 200);
+
+        // Optionally, stop all previous event sequences to focus on the scare
+        eventSequence.forEach(clearTimeout);
+
+    }, 72000)); // Final scare happens at 72 seconds
+}
+
+// Function to simulate screen flickering with increasing intensity
+function flickerScreen(interval = 500) {
+    let body = document.body;
+    let flickerEffect = setInterval(function() {
+        body.style.backgroundColor = body.style.backgroundColor === "#000" ? "#111" : "#000";
+    }, interval);
+
+    setTimeout(function() {
+        clearInterval(flickerEffect);
+    }, 10000); // Flicker lasts for 10 seconds
+}
+
+// Function to play random creepy sounds
+function playRandomSounds(interval = 2000) {
+    let randomSounds = [
+        "creepy_whisper.mp3", 
+        "footsteps.mp3", 
+        "door_creak.mp3", 
+        "wind_howl.mp3"
+    ];
+
+    let playSound = setInterval(function() {
+        let sound = new Audio(randomSounds[Math.floor(Math.random() * randomSounds.length)]);
+        sound.play();
+    }, interval);
+
+    setTimeout(function() {
+        clearInterval(playSound);
+    }, 20000); // Random sounds play for 20 seconds
+}
