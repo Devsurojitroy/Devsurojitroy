@@ -1,0 +1,256 @@
+import csv
+import os
+import json
+import matplotlib.pyplot as plt
+from datetime import datetime
+from typing import List, Dict, Optional
+from getpass import getpass
+
+# File paths
+TRANSACTION_FILE = 'transactions.csv'
+USER_FILE = 'users.json'
+
+def initialize_files():
+    """Initialize the necessary files with headers if they don't exist."""
+    if not os.path.isfile(TRANSACTION_FILE):
+        with open(TRANSACTION_FILE, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Date', 'Amount', 'Description', 'Category', 'Account', 'User'])
+
+    if not os.path.isfile(USER_FILE):
+        with open(USER_FILE, 'w') as file:
+            json.dump({}, file)
+
+def load_transactions() -> List[Dict[str, str]]:
+    """Load transactions from the CSV file."""
+    transactions = []
+    if os.path.isfile(TRANSACTION_FILE):
+        with open(TRANSACTION_FILE, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                transactions.append({
+                    'date': row['Date'],
+                    'amount': float(row['Amount']),
+                    'description': row['Description'],
+                    'category': row['Category'],
+                    'account': row['Account'],
+                    'user': row['User']
+                })
+    return transactions
+
+def save_transaction(date: str, amount: float, description: str, category: str, account: str, user: str):
+    """Save a single transaction to the CSV file."""
+    with open(TRANSACTION_FILE, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([date, amount, description, category, account, user])
+
+def add_transaction(transactions: List[Dict[str, str]], user: str):
+    """Add a new transaction with validation."""
+    while True:
+        date_str = input("Enter date (YYYY-MM-DD): ")
+        try:
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            break
+        except ValueError:
+            print("Invalid date format. Please enter in YYYY-MM-DD format.")
+
+    while True:
+        try:
+            amount = float(input("Enter amount: "))
+            if amount <= 0:
+                raise ValueError
+            break
+        except ValueError:
+            print("Invalid amount. Please enter a positive number.")
+
+    description = input("Enter description: ")
+    category = input("Enter category (e.g., groceries, utilities): ")
+    account = input("Enter account (e.g., checking, savings): ")
+
+    transaction = {
+        'date': date_str,
+        'amount': amount,
+        'description': description,
+        'category': category,
+        'account': account,
+        'user': user
+    }
+    transactions.append(transaction)
+    save_transaction(date_str, amount, description, category, account, user)
+    print("Transaction added successfully.")
+
+def view_transactions(transactions: List[Dict[str, str]], user: Optional[str] = None):
+    """View all transactions, optionally filtered by user."""
+    if not transactions:
+        print("No transactions found.")
+        return
+
+    if user:
+        transactions = [txn for txn in transactions if txn['user'] == user]
+
+    print(f"{'Date':<12} {'Amount':<10} {'Description':<30} {'Category':<15} {'Account':<10}")
+    print("-" * 70)
+    for txn in transactions:
+        print(f"{txn['date']:<12} {txn['amount']:<10.2f} {txn['description']:<30} {txn['category']:<15} {txn['account']:<10}")
+
+def filter_transactions(transactions: List[Dict[str, str]], start_date: datetime, end_date: datetime, category: Optional[str] = None, user: Optional[str] = None) -> List[Dict[str, str]]:
+    """Filter transactions by date range and optional category and user."""
+    filtered = [txn for txn in transactions if start_date <= datetime.strptime(txn['date'], "%Y-%m-%d").date() <= end_date]
+    if category:
+        filtered = [txn for txn in filtered if txn['category'].lower() == category.lower()]
+    if user:
+        filtered = [txn for txn in filtered if txn['user'] == user]
+    return filtered
+
+def summarize_transactions(transactions: List[Dict[str, str]]):
+    """Print summary of transactions including total amount and count by category."""
+    if not transactions:
+        print("No transactions to summarize.")
+        return
+
+    categories = {}
+    total_amount = 0
+    for txn in transactions:
+        category = txn['category']
+        amount = txn['amount']
+        total_amount += amount
+        if category not in categories:
+            categories[category] = 0
+        categories[category] += amount
+
+    print(f"\nTotal Transactions: {len(transactions)}")
+    print(f"Total Amount: ${total_amount:.2f}")
+    print("\nCategory Summary:")
+    for category, amount in categories.items():
+        print(f"{category}: ${amount:.2f}")
+
+def detailed_summary(transactions: List[Dict[str, str]], user: Optional[str] = None):
+    """Print detailed summary including breakdown by category and date range."""
+    if not transactions:
+        print("No transactions to summarize.")
+        return
+
+    while True:
+        start_date_str = input("Enter start date for summary (YYYY-MM-DD): ")
+        end_date_str = input("Enter end date for summary (YYYY-MM-DD): ")
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            if start_date > end_date:
+                raise ValueError
+            break
+        except ValueError:
+            print("Invalid date format or range. Please enter dates in YYYY-MM-DD format and ensure start date is before end date.")
+
+    filtered = filter_transactions(transactions, start_date, end_date, user=user)
+
+    print(f"\nDetailed Summary from {start_date} to {end_date}:")
+    summarize_transactions(filtered)
+
+def plot_summary(transactions: List[Dict[str, str]]):
+    """Generate and save a graphical report of transactions."""
+    if not transactions:
+        print("No transactions to plot.")
+        return
+
+    categories = {}
+    for txn in transactions:
+        category = txn['category']
+        amount = txn['amount']
+        if category not in categories:
+            categories[category] = 0
+        categories[category] += amount
+
+    categories_list = list(categories.keys())
+    amounts_list = list(categories.values())
+
+    plt.figure(figsize=(10, 7))
+    plt.bar(categories_list, amounts_list, color='skyblue')
+    plt.xlabel('Category')
+    plt.ylabel('Amount')
+    plt.title('Transaction Summary by Category')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig('summary_report.png')
+    plt.show()
+
+def export_to_excel(transactions: List[Dict[str, str]]):
+    """Export transactions to an Excel file."""
+    try:
+        import pandas as pd
+    except ImportError:
+        print("Pandas module is required for this functionality. Install it using 'pip install pandas'.")
+        return
+
+    if not transactions:
+        print("No transactions to export.")
+        return
+
+    df = pd.DataFrame(transactions)
+    df.to_excel('transactions.xlsx', index=False)
+    print("Transactions exported to transactions.xlsx")
+
+def user_login() -> str:
+    """Authenticate user and return username."""
+    with open(USER_FILE, 'r') as file:
+        users = json.load(file)
+
+    while True:
+        username = input("Enter username: ")
+        password = getpass("Enter password: ")
+
+        if username in users and users[username] == password:
+            return username
+        else:
+            print("Invalid username or password. Please try again.")
+
+def user_registration():
+    """Register a new user."""
+    with open(USER_FILE, 'r') as file:
+        users = json.load(file)
+
+    while True:
+        username = input("Enter new username: ")
+        if username in users:
+            print("Username already exists. Choose a different username.")
+            continue
+
+        password = getpass("Enter new password: ")
+        confirm_password = getpass("Confirm password: ")
+
+        if password == confirm_password:
+            users[username] = password
+            with open(USER_FILE, 'w') as file:
+                json.dump(users, file)
+            print("User registered successfully.")
+            return
+        else:
+            print("Passwords do not match. Try again.")
+
+def main():
+    initialize_files()
+
+    while True:
+        print("\nBank Payment Tracker")
+        print("1. Register")
+        print("2. Login")
+        print("3. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            user_registration()
+        elif choice == '2':
+            user = user_login()
+            transactions = load_transactions()
+            while True:
+                print("\nMain Menu")
+                print("1. Add Transaction")
+                print("2. View Transactions")
+                print("3. Summarize Transactions")
+                print("4. Detailed Summary")
+                print("5. Generate Graphical Report")
+                print("6. Export to Excel")
+                print("7. Logout")
+
+                choice = input("Enter your
