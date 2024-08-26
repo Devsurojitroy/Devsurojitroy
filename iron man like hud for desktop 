@@ -1,0 +1,107 @@
+import pygame
+import tkinter as tk
+from tkinter import Label, Frame, PhotoImage
+import time
+import psutil
+import requests
+from PIL import Image, ImageTk
+import threading
+
+# Initialize Pygame mixer for welcome music
+pygame.mixer.init()
+pygame.mixer.music.load("path_to_your_welcome_music.mp3")
+pygame.mixer.music.play()
+
+# Function to fetch current weather
+def get_weather(city="New York"):
+    api_key = "your_openweathermap_api_key"
+    base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    response = requests.get(base_url)
+    data = response.json()
+    if data["cod"] != "404":
+        weather_desc = data["weather"][0]["description"].capitalize()
+        temperature = data["main"]["temp"]
+        return f"{weather_desc}, {temperature}°C"
+    else:
+        return "Weather data not found"
+
+# HUD Interface using Tkinter
+def create_hud():
+    root = tk.Tk()
+    root.title("Tony Stark HUD")
+    root.geometry("800x600")
+    root.config(bg="black")
+    root.attributes('-alpha', 0.90)
+
+    # Load and set background image
+    bg_image = Image.open("path_to_your_background_image.jpg")
+    bg_image = bg_image.resize((800, 600), Image.ANTIALIAS)
+    bg_photo = ImageTk.PhotoImage(bg_image)
+    bg_label = Label(root, image=bg_photo)
+    bg_label.place(relx=0.5, rely=0.5, anchor="center")
+
+    # Welcome Label
+    welcome_label = Label(root, text="Welcome, Surojit!", font=("Helvetica", 30), fg="cyan", bg="black")
+    welcome_label.pack(pady=20)
+
+    # System Information Frame
+    sys_info_frame = Frame(root, bg="black")
+    sys_info_frame.pack(pady=10)
+
+    # CPU Usage Label
+    cpu_label = Label(sys_info_frame, text="", font=("Helvetica", 18), fg="white", bg="black")
+    cpu_label.grid(row=0, column=0, padx=10)
+
+    # Memory Usage Label
+    mem_label = Label(sys_info_frame, text="", font=("Helvetica", 18), fg="white", bg="black")
+    mem_label.grid(row=0, column=1, padx=10)
+
+    # Disk Usage Label
+    disk_label = Label(sys_info_frame, text="", font=("Helvetica", 18), fg="white", bg="black")
+    disk_label.grid(row=0, column=2, padx=10)
+
+    # Weather Information Label
+    weather_label = Label(root, text="", font=("Helvetica", 18), fg="cyan", bg="black")
+    weather_label.pack(pady=10)
+
+    # System Time Label
+    time_label = Label(root, text="", font=("Helvetica", 24), fg="yellow", bg="black")
+    time_label.pack(pady=10)
+
+    def update_sys_info():
+        while True:
+            cpu_usage = psutil.cpu_percent()
+            mem_usage = psutil.virtual_memory().percent
+            disk_usage = psutil.disk_usage('/').percent
+
+            cpu_label.config(text=f"CPU: {cpu_usage}%")
+            mem_label.config(text=f"Memory: {mem_usage}%")
+            disk_label.config(text=f"Disk: {disk_usage}%")
+
+            root.update_idletasks()
+            time.sleep(1)
+
+    def update_weather():
+        while True:
+            weather = get_weather()
+            weather_label.config(text=f"Weather: {weather}")
+            root.update_idletasks()
+            time.sleep(1800)  # Update every 30 minutes
+
+    def update_time():
+        while True:
+            current_time = time.strftime('%H:%M:%S')
+            time_label.config(text=current_time)
+            root.update_idletasks()
+            time.sleep(1)
+
+    # Start threads for continuous updates
+    threading.Thread(target=update_sys_info, daemon=True).start()
+    threading.Thread(target=update_weather, daemon=True).start()
+    threading.Thread(target=update_time, daemon=True).start()
+
+    # Run the HUD
+    root.mainloop()
+
+# Run the HUD
+create_hud()
