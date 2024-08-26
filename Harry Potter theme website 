@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Hogwarts</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header class="hogwarts-header">
+        <div class="logo">
+            <img src="images/hogwarts-logo.png" alt="Hogwarts Logo">
+        </div>
+        <nav class="main-nav">
+            <ul>
+                <li><a href="#sorting">Get Sorted</a></li>
+                <li><a href="#houses">Houses</a></li>
+                <li><a href="#spells">Spells</a></li>
+                <li><a href="#gallery">Gallery</a></li>
+                <li><a href="#shop">Diagon Alley</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="welcome">
+            <h1>Welcome to Hogwarts School of Witchcraft and Wizardry</h1>
+            <p>Your journey to becoming a great wizard or witch begins here.</p>
+            <div class="image-slider">
+                <!-- Images of Hogwarts -->
+            </div>
+        </section>
+
+        <section id="sorting">
+            <h2>House Sorting Ceremony</h2>
+            <button onclick="startSorting()">Get Sorted</button>
+            <div id="house-result"></div>
+        </section>
+
+        <section id="houses">
+            <h2>Hogwarts Houses</h2>
+            <div class="houses-grid">
+                <!-- Links to each house page -->
+            </div>
+        </section>
+
+        <section id="spells">
+            <h2>Learn and Cast Spells</h2>
+            <input type="text" id="spell-input" placeholder="Type a spell">
+            <button onclick="castSpell()">Cast Spell</button>
+            <div id="spell-result"></div>
+        </section>
+
+        <section id="gallery">
+            <h2>Magical Creatures Gallery</h2>
+            <div class="creature-gallery">
+                <!-- Images of magical creatures -->
+            </div>
+        </section>
+
+        <section id="shop">
+            <h2>Diagon Alley</h2>
+            <p>Visit the magical shops and buy your wizarding supplies.</p>
+            <div class="shop-items">
+                <!-- Items for sale -->
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Hogwarts School of Witchcraft and Wizardry. All rights reserved.</p>
+        <p>"It is our choices that show what we truly are, far more than our abilities." - Albus Dumbledore</p>
+    </footer>
+    <audio id="hp-theme" autoplay loop>
+        <source src="audio/harry_potter_theme.mp3" type="audio/mpeg">
+    </audio>
+</body>
+</html>
+.
+.
+.
+.
+css
+ 
+ 
+body {
+    font-family: 'Garamond', serif;
+    background-color: #282828;
+    color: #FFFFFF;
+    margin: 0;
+    padding: 0;
+}
+
+header.hogwarts-header {
+    background: url('images/header-bg.jpg') no-repeat center center;
+    background-size: cover;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+}
+
+.logo img {
+    width: 150px;
+}
+
+.main-nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+
+.main-nav ul li {
+    margin: 0 15px;
+}
+
+.main-nav ul li a {
+    color: #FFD700;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+main {
+    padding: 20px;
+}
+
+#house-result {
+    margin-top: 20px;
+    font-size: 24px;
+    text-align: center;
+}
+
+.houses-grid {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+}
+
+.creature-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+footer {
+    background-color: #1A1A1A;
+    color: #FFD700;
+    text-align: center;
+    padding: 15px 0;
+}
+.
+ 
+.
+.
+JavaScript 
+ 
+ .
+.
+function startSorting() {
+    const houses = ["Gryffindor", "Slytherin", "Ravenclaw", "Hufflepuff"];
+    const house = houses[Math.floor(Math.random() * houses.length)];
+    document.getElementById("house-result").innerText = `You belong to ${house}`;
+    applyHouseTheme(house);
+}
+
+function applyHouseTheme(house) {
+    const colors = {
+        "Gryffindor": ["#7F0909", "#FFC500"],
+        "Slytherin": ["#1A472A", "#AAAAAA"],
+        "Ravenclaw": ["#0E1A40", "#946B2D"],
+        "Hufflepuff": ["#EEE117", "#000000"]
+    };
+    document.body.style.backgroundColor = colors[house][0];
+    document.body.style.color = colors[house][1];
+}
+
+function castSpell() {
+    const spells = {
+        "Expelliarmus": "Disarm your opponent",
+        "Lumos": "Light up your wand",
+        "Alohomora": "Unlock doors",
+        "Expecto Patronum": "Summon a Patronus"
+    };
+    const spellInput = document.getElementById("spell-input").value.trim();
+    const result = spells[spellInput] ? spells[spellInput] : "Unknown spell!";
+    document.getElementById("spell-result").innerText = result;
+}
