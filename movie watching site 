@@ -1,0 +1,382 @@
+1. Enhanced HTML (index.html)<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Movie Watcher</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Advanced Movie Watcher</h1>
+        <nav>
+            <a href="#" onclick="showSection('home')">Home</a>
+            <a href="#" onclick="showSection('search')">Search</a>
+            <a href="#" onclick="showSection('recommendations')">Recommendations</a>
+            <a href="#" onclick="showSection('profile')">Profile</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </nav>
+    </header>
+    <main id="content">
+        <section id="home" class="section">
+            <h2>Welcome to Advanced Movie Watcher</h2>
+            <p>Explore and watch your favorite movies.</p>
+        </section>
+        <section id="search" class="section" style="display: none;">
+            <h2>Search Movies</h2>
+            <input type="text" id="search-input" placeholder="Search for movies...">
+            <button onclick="searchMovies()">Search</button>
+            <div id="search-results"></div>
+        </section>
+        <section id="recommendations" class="section" style="display: none;">
+            <h2>Movie Recommendations</h2>
+            <button onclick="getRecommendations()">Get Recommendations</button>
+            <div id="recommendation-results"></div>
+        </section>
+        <section id="profile" class="section" style="display: none;">
+            <h2>Your Profile</h2>
+            <div id="profile-info"></div>
+        </section>
+        <section id="movie-player" style="display: none;">
+            <button onclick="closePlayer()">Close</button>
+            <iframe id="player" width="800" height="450" frameborder="0" allowfullscreen></iframe>
+        </section>
+        <section id="login" class="section" style="display: none;">
+            <h2>Login</h2>
+            <input type="text" id="login-username" placeholder="Username">
+            <input type="password" id="login-password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <p id="login-error" style="color: red;"></p>
+        </section>
+        <section id="register" class="section" style="display: none;">
+            <h2>Register</h2>
+            <input type="text" id="register-username" placeholder="Username">
+            <input type="email" id="register-email" placeholder="Email">
+            <input type="password" id="register-password" placeholder="Password">
+            <button onclick="register()">Register</button>
+            <p id="register-error" style="color: red;"></p>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>2. Enhanced CSS (styles.css)body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 1em;
+    text-align: center;
+}
+
+nav {
+    margin: 0;
+}
+
+nav a {
+    color: white;
+    padding: 0.5em;
+    text-decoration: none;
+    margin: 0 0.5em;
+}
+
+nav a:hover {
+    background-color: #555;
+    border-radius: 5px;
+}
+
+main {
+    padding: 1em;
+}
+
+.section {
+    padding: 1em;
+    background-color: white;
+    border-radius: 5px;
+    margin: 1em 0;
+}
+
+#search-results, #recommendation-results {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.movie-item {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin: 1em;
+    padding: 1em;
+    width: 200px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.movie-item img {
+    width: 100%;
+    border-radius: 5px;
+}
+
+#movie-player {
+    text-align: center;
+    padding: 1em;
+}
+
+#movie-player button {
+    margin-bottom: 1em;
+}
+
+#login, #register {
+    max-width: 300px;
+    margin: auto;
+}
+
+input {
+    display: block;
+    margin: 0.5em 0;
+    padding: 0.5em;
+    width: 100%;
+}3. Enhanced JavaScript (script.js)const API_KEY = 'your_api_key_here'; // Replace with your API key
+const BASE_URL = 'https://api.themoviedb.org/3'; // Base URL for TMDb API
+const USER_KEY = 'user'; // Simulated user key for authentication
+const AUTH_URL = 'https://api.example.com/auth'; // Placeholder for authentication API
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem(USER_KEY)) {
+        showSection('login');
+    } else {
+        showSection('home');
+        loadUserProfile();
+    }
+});
+
+function showSection(id) {
+    const sections = document.querySelectorAll('.section');
+    sections.forEach(section => {
+        section.style.display = section.id === id ? 'block' : 'none';
+    });
+}
+
+function searchMovies() {
+    const query = document.getElementById('search-input').value;
+    fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&query=${query}`)
+        .then(response => response.json())
+        .then(data => displayMovies(data.results))
+        .catch(error => console.error('Error fetching movies:', error));
+}
+
+function displayMovies(movies) {
+    const searchResults = document.getElementById('search-results');
+    searchResults.innerHTML = '';
+
+    movies.forEach(movie => {
+        const movieItem = document.createElement('div');
+        movieItem.className = 'movie-item';
+        movieItem.innerHTML = `
+            <img src="https://image.tmdb.org/t/p/w200/${movie.poster_path}" alt="${movie.title}">
+            <h3>${movie.title}</h3>
+            <p>${movie.release_date}</p>
+        `;
+        movieItem.onclick = () => playTrailer(movie.id);
+        searchResults.appendChild(movieItem);
+    });
+}
+
+function playTrailer(movieId) {
+    fetch(`${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}`)
+        .then(response => response.json())
+        .then(data => {
+            const trailer = data.results.find(video => video.type === 'Trailer');
+            if (trailer) {
+                document.getElementById('player').src = `https://www.youtube.com/embed/${trailer.key}`;
+                document.getElementById('movie-player').style.display = 'block';
+            } else {
+                alert('Trailer not found');
+            }
+        })
+        .catch(error => console.error('Error fetching trailer:', error));
+}
+
+function closePlayer() {
+    document.getElementById('movie-player').style.display = 'none';
+    document.getElementById('player').src = '';
+}
+
+function logout() {
+    localStorage.removeItem(USER_KEY);
+    showSection('login');
+}
+
+function loadUserProfile() {
+    const userInfo = JSON.parse(localStorage.getItem(USER_KEY));
+    const profileInfo = document.getElementById('profile-info');
+    profileInfo.innerHTML = `
+        <p>Name: ${userInfo.name}</p>
+        <p>Email: ${userInfo.email}</p>
+    `;
+}
+
+function login() {
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+
+    fetch(`${AUTH_URL}/login`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            showSection('home');
+            loadUserProfile();
+        } else {
+            document.getElementById('login-error').textContent = data.message;
+        }
+    })
+    .catch(error => console.error('Login error:', error));
+}
+
+function register() {
+    const username = document.getElementById('register-username').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+
+    fetch(`${AUTH_URL}/register`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, email, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSection('login');
+        } else {
+            document.getElementById('
+
+
+4. Additional Features and Enhancements4.1 User Profile ManagementHTML (Add profile management in index.html)<section id="profile-management" class="section" style="display: none;">
+    <h2>Manage Profile</h2>
+    <input type="text" id="profile-name" placeholder="Name">
+    <input type="email" id="profile-email" placeholder="Email">
+    <button onclick="updateProfile()">Update Profile</button>
+    <p id="profile-update-message"></p>
+</section>JavaScript (Add profile management functions in script.js)function updateProfile() {
+    const name = document.getElementById('profile-name').value;
+    const email = document.getElementById('profile-email').value;
+
+    const userInfo = JSON.parse(localStorage.getItem(USER_KEY));
+    fetch(`${AUTH_URL}/update-profile`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userInfo.token}`
+        },
+        body: JSON.stringify({ name, email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            localStorage.setItem(USER_KEY, JSON.stringify({ ...userInfo, name, email }));
+            document.getElementById('profile-update-message').textContent = 'Profile updated successfully';
+        } else {
+            document.getElementById('profile-update-message').textContent = data.message;
+        }
+    })
+    .catch(error => console.error('Update profile error:', error));
+}4.2 Movie RecommendationsJavaScript (Add recommendation functionality in script.js)function getRecommendations() {
+    const userInfo = JSON.parse(localStorage.getItem(USER_KEY));
+    fetch(`${BASE_URL}/user/${userInfo.id}/recommendations?api_key=${API_KEY}`, {
+        headers: {
+            'Authorization': `Bearer ${userInfo.token}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => displayRecommendations(data.results))
+    .catch(error => console.error('Error fetching recommendations:', error));
+}
+
+function displayRecommendations(movies) {
+    const recommendationResults = document.getElementById('recommendation-results');
+    recommendationResults.innerHTML = '';
+
+    movies.forEach(movie => {
+        const movieItem = document.createElement('div');
+        movieItem.className = 'movie-item';
+        movieItem.innerHTML = `
+            <img src="https://image.tmdb.org/t/p/w200/${movie.poster_path}" alt="${movie.title}">
+            <h3>${movie.title}</h3>
+            <p>${movie.release_date}</p>
+        `;
+        movieItem.onclick = () => playTrailer(movie.id);
+        recommendationResults.appendChild(movieItem);
+    });
+}4.3 Advanced SearchHTML (Add filters in index.html)<section id="search" class="section" style="display: none;">
+    <h2>Search Movies</h2>
+    <input type="text" id="search-input" placeholder="Search for movies...">
+    <select id="genre-filter">
+        <option value="">Select Genre</option>
+        <!-- Populate dynamically -->
+    </select>
+    <input type="number" id="year-filter" placeholder="Year">
+    <button onclick="searchMovies()">Search</button>
+    <div id="search-results"></div>
+</section>JavaScript (Add filter logic in script.js)document.addEventListener('DOMContentLoaded', () => {
+    fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}`)
+        .then(response => response.json())
+        .then(data => populateGenres(data.genres))
+        .catch(error => console.error('Error fetching genres:', error));
+});
+
+function populateGenres(genres) {
+    const genreFilter = document.getElementById('genre-filter');
+    genres.forEach(genre => {
+        const option = document.createElement('option');
+        option.value = genre.id;
+        option.textContent = genre.name;
+        genreFilter.appendChild(option);
+    });
+}
+
+function searchMovies() {
+    const query = document.getElementById('search-input').value;
+    const genre = document.getElementById('genre-filter').value;
+    const year = document.getElementById('year-filter').value;
+
+    let url = `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${query}`;
+    if (genre) url += `&with_genres=${genre}`;
+    if (year) url += `&year=${year}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => displayMovies(data.results))
+        .catch(error => console.error('Error fetching movies:', error));
+}4.4 Error Handling and User FeedbackJavaScript (Add error handling in script.js)function displayError(message) {
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'error';
+    errorContainer.textContent = message;
+    document.body.prepend(errorContainer);
+}
+
+document.addEventListener('error', event => {
+    displayError(`An error occurred: ${event.message}`);
+});
+
+window.addEventListener('unhandledrejection', event => {
+    displayError(`Unhandled promise rejection: ${event.reason}`);
+});CSS (Style error messages in styles.css).error {
+    background-color: #ffdddd;
+    color: #a00;
+    padding: 1em;
+    margin: 1em;
+    border-radius: 5px;
+}
