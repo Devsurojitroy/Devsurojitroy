@@ -1,0 +1,183 @@
+python 
+
+
+import tkinter as tk
+from tkinter import filedialog, messagebox, simpledialog, colorchooser
+from PIL import Image, ImageTk, ImageEnhance, ImageFilter, ImageOps, ImageDraw, ImageFont
+import io
+
+class PhotoEditorApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Advanced Photo Editor")
+
+        # Initialize images and layers
+        self.layers = []
+        self.current_layer = None
+        self.original_image = None
+        self.font = ImageFont.load_default()
+
+        # Create UI components
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Canvas for displaying image
+        self.canvas = tk.Canvas(self.root, bg='gray')
+        self.canvas.pack(fill='both', expand=True)
+
+        # Control buttons
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(side='bottom', fill='x')
+
+        tk.Button(button_frame, text="Upload", command=self.upload_image).pack(side='left')
+        tk.Button(button_frame, text="Save", command=self.save_image).pack(side='left')
+        tk.Button(button_frame, text="Brightness", command=self.adjust_brightness).pack(side='left')
+        tk.Button(button_frame, text="Contrast", command=self.adjust_contrast).pack(side='left')
+        tk.Button(button_frame, text="Rotate", command=self.rotate_image).pack(side='left')
+        tk.Button(button_frame, text="Crop", command=self.crop_image).pack(side='left')
+        tk.Button(button_frame, text="Filter", command=self.apply_filter).pack(side='left')
+        tk.Button(button_frame, text="Invert Colors", command=self.invert_colors).pack(side='left')
+        tk.Button(button_frame, text="Add Text", command=self.add_text).pack(side='left')
+        tk.Button(button_frame, text="Add Shape", command=self.add_shape).pack(side='left')
+        tk.Button(button_frame, text="Undo", command=self.undo).pack(side='left')
+        tk.Button(button_frame, text="Redo", command=self.redo).pack(side='left')
+
+    def upload_image(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg;*.png")])
+        if file_path:
+            self.original_image = Image.open(file_path)
+            self.create_new_layer(self.original_image)
+
+    def save_image(self):
+        if self.layers:
+            final_image = self.merge_layers()
+            file_path = filedialog.asksaveasfilename(defaultextension=".png",
+                                                   filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg")])
+            if file_path:
+                final_image.save(file_path)
+        else:
+            messagebox.showerror("Error", "No image to save!")
+
+    def create_new_layer(self, image):
+        layer = image.copy()
+        self.layers.append(layer)
+        self.current_layer = layer
+        self.update_image_display()
+
+    def update_image_display(self):
+        if self.layers:
+            merged_image = self.merge_layers()
+            self.tk_image = ImageTk.PhotoImage(merged_image)
+            self.canvas.delete("all")
+            self.canvas.create_image(0, 0, image=self.tk_image, anchor='nw')
+
+    def merge_layers(self):
+        if not self.layers:
+            return Image.new('RGB', (1, 1))
+
+        base = self.layers[0]
+        for layer in self.layers[1:]:
+            base.paste(layer, (0, 0), layer)
+        return base
+
+    def adjust_brightness(self):
+        if self.current_layer:
+            factor = simpledialog.askfloat("Brightness", "Enter brightness factor (0.0 to 2.0):", minvalue=0.0, maxvalue=2.0)
+            if factor is not None:
+                enhancer = ImageEnhance.Brightness(self.current_layer)
+                self.current_layer = enhancer.enhance(factor)
+                self.update_image_display()
+
+    def adjust_contrast(self):
+        if self.current_layer:
+            factor = simpledialog.askfloat("Contrast", "Enter contrast factor (0.0 to 2.0):", minvalue=0.0, maxvalue=2.0)
+            if factor is not None:
+                enhancer = ImageEnhance.Contrast(self.current_layer)
+                self.current_layer = enhancer.enhance(factor)
+                self.update_image_display()
+
+    def rotate_image(self):
+        if self.current_layer:
+            angle = simpledialog.askfloat("Rotate", "Enter rotation angle (degrees):")
+            if angle is not None:
+                self.current_layer = self.current_layer.rotate(angle, expand=True)
+                self.update_image_display()
+
+    def crop_image(self):
+        if self.current_layer:
+            width, height = self.current_layer.size
+            left = simpledialog.askinteger("Crop", "Enter left coordinate:")
+            top = simpledialog.askinteger("Crop", "Enter top coordinate:")
+            right = simpledialog.askinteger("Crop", "Enter right coordinate:", initialvalue=width)
+            bottom = simpledialog.askinteger("Crop", "Enter bottom coordinate:", initialvalue=height)
+            if left is not None and top is not None and right is not None and bottom is not None:
+                self.current_layer = self.current_layer.crop((left, top, right, bottom))
+                self.update_image_display()
+
+    def apply_filter(self):
+        if self.current_layer:
+            filter_type = simpledialog.askstring("Filter", "Enter filter type (BLUR, CONTOUR, DETAIL, GAUSSIAN_BLUR, SHARPEN):")
+            if filter_type:
+                filter_map = {
+                    "BLUR": ImageFilter.BLUR,
+                    "CONTOUR": ImageFilter.CONTOUR,
+                    "DETAIL": ImageFilter.DETAIL,
+                    "GAUSSIAN_BLUR": ImageFilter.GaussianBlur,
+                    "SHARPEN": ImageFilter.SHARPEN
+                }
+                if filter_type in filter_map:
+                    if filter_type == "GAUSSIAN_BLUR":
+                        radius = simpledialog.askfloat("Gaussian Blur", "Enter blur radius:")
+                        if radius is not None:
+                            self.current_layer = self.current_layer.filter(filter_map[filter_type](radius))
+                    else:
+                        self.current_layer = self.current_layer.filter(filter_map[filter_type])
+                    self.update_image_display()
+
+    def invert_colors(self):
+        if self.current_layer:
+            self.current_layer = ImageOps.invert(self.current_layer.convert("RGB"))
+            self.update_image_display()
+
+    def add_text(self):
+        if self.current_layer:
+            text = simpledialog.askstring("Add Text", "Enter text to add:")
+            if text:
+                x = simpledialog.askinteger("Add Text", "Enter X coordinate:")
+                y = simpledialog.askinteger("Add Text", "Enter Y coordinate:")
+                if x is not None and y is not None:
+                    draw = ImageDraw.Draw(self.current_layer)
+                    draw.text((x, y), text, font=self.font, fill="white")
+                    self.update_image_display()
+
+    def add_shape(self):
+        if self.current_layer:
+            shape = simpledialog.askstring("Add Shape", "Enter shape (rectangle, ellipse):")
+            if shape:
+                x1 = simpledialog.askinteger("Add Shape", "Enter top-left X coordinate:")
+                y1 = simpledialog.askinteger("Add Shape", "Enter top-left Y coordinate:")
+                x2 = simpledialog.askinteger("Add Shape", "Enter bottom-right X coordinate:")
+                y2 = simpledialog.askinteger("Add Shape", "Enter bottom-right Y coordinate:")
+                if x1 is not None and y1 is not None and x2 is not None and y2 is not None:
+                    color = colorchooser.askcolor()[1]
+                    draw = ImageDraw.Draw(self.current_layer)
+                    if shape == "rectangle":
+                        draw.rectangle([x1, y1, x2, y2], outline=color, fill=None)
+                    elif shape == "ellipse":
+                        draw.ellipse([x1, y1, x2, y2], outline=color, fill=None)
+                    self.update_image_display()
+
+    def undo(self):
+        # Simplified for demo purposes
+        # In a real application, you'd need to implement a proper undo stack
+        pass
+
+    def redo(self):
+        # Simplified for demo purposes
+        # In a real application, you'd need to implement a proper redo stack
+        pass
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PhotoEditorApp(root)
+    root.mainloop()
