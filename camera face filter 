@@ -1,0 +1,99 @@
+html
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Face Filter</title>
+    <style>
+        #videoElement {
+            width: 100%;
+            height: auto;
+        }
+
+        #filterCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .filter-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="filter-wrapper">
+        <video id="videoElement" autoplay></video>
+        <canvas id="filterCanvas"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+JavaScript 
+
+
+const video = document.getElementById('videoElement');
+const canvas = document.getElementById('filterCanvas');
+const context = canvas.getContext('2d');
+
+// Load images for filters
+const sunglasses = new Image();
+sunglasses.src = 'sunglasses.png'; // Replace with your sunglasses image
+const mustache = new Image();
+mustache.src = 'mustache.png'; // Replace with your mustache image
+
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+        video.srcObject = stream;
+    })
+    .catch(error => {
+        console.error("Error accessing the camera: ", error);
+    });
+
+async function loadModels() {
+    await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+}
+
+async function detectFace() {
+    const displaySize = { width: video.width, height: video.height };
+    faceapi.matchDimensions(canvas, displaySize);
+
+    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    resizedDetections.forEach(detection => {
+        const landmarks = detection.landmarks;
+        const leftEye = landmarks.getLeftEye();
+        const rightEye = landmarks.getRightEye();
+        const nose = landmarks.getNose();
+
+        // Draw sunglasses
+        const eyeWidth = rightEye[3].x - leftEye[0].x;
+        const eyeHeight = (rightEye[3].y - leftEye[0].y) * 2;
+        context.drawImage(sunglasses, leftEye[0].x - 20, leftEye[0].y - 30, eyeWidth + 40, eyeHeight);
+
+        // Draw mustache
+        const noseWidth = nose[2].x - nose[0].x;
+        context.drawImage(mustache, nose[0].x - 20, nose[0].y + 10, noseWidth + 40, 30);
+    });
+
+    requestAnimationFrame(detectFace);
+}
+
+video.addEventListener('play', () => {
+    loadModels().then(detectFace);
+});
