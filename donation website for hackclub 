@@ -1,0 +1,256 @@
+HTML StructureThe following HTML structure is for the index.html file, with sections that will be dynamically populated.<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donate for a Cause</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="lib/jquery.min.js"></script>
+</head>
+<body>
+    <!-- Header Section -->
+    <header id="main-header">
+        <!-- Include external HTML -->
+    </header>
+
+    <!-- Main Content -->
+    <main id="content">
+        <section id="hero">
+            <h1>Support a Cause Today</h1>
+            <p>Your donation can make a difference in someone's life.</p>
+            <button id="donate-now">Donate Now</button>
+        </section>
+        <section id="donation-stats">
+            <h2>Donation Statistics</h2>
+            <canvas id="donationChart"></canvas>
+        </section>
+        <section id="causes">
+            <h2>Our Causes</h2>
+            <div id="cause-list">
+                <!-- Causes will be dynamically loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Section -->
+    <footer id="main-footer">
+        <!-- Include external HTML -->
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>3. CSS StylingAdd responsive styling and advanced features to styles.css./* Global Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 15px 0;
+    text-align: center;
+}
+
+main {
+    padding: 20px;
+}
+
+#hero {
+    background: url('assets/images/hero-bg.jpg') no-repeat center center/cover;
+    color: #fff;
+    text-align: center;
+    padding: 100px 20px;
+    margin-bottom: 20px;
+}
+
+#donate-now {
+    background-color: #28a745;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    border-radius: 5px;
+}
+
+#donation-stats {
+    margin: 40px 0;
+}
+
+#causes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.cause {
+    background-color: #fff;
+    margin: 10px;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    width: calc(33% - 40px);
+}
+
+.cause img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+.cause h3 {
+    margin: 15px 0;
+    font-size: 1.5em;
+    color: #333;
+}
+
+.cause p {
+    color: #666;
+    font-size: 0.9em;
+}
+
+footer {
+    background-color: #333;
+    color: #fff;
+    padding: 20px 0;
+    text-align: center;
+    margin-top: 40px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #causes {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cause {
+        width: 80%;
+    }
+}4. JavaScript FunctionalityImplement advanced JavaScript logic for donation management, charts, and dynamic content loading in script.js.$(document).ready(function() {
+    // Load external HTML components
+    $('#main-header').load('components/header.html');
+    $('#main-footer').load('components/footer.html');
+    
+    // Load Causes from JSON
+    $.getJSON('data/causes.json', function(data) {
+        let causesHTML = '';
+        data.forEach(function(cause) {
+            causesHTML += `
+                <div class="cause">
+                    <img src="${cause.image}" alt="${cause.title}">
+                    <h3>${cause.title}</h3>
+                    <p>${cause.description}</p>
+                    <button class="donate-button" data-cause="${cause.id}">Donate</button>
+                </div>
+            `;
+        });
+        $('#cause-list').html(causesHTML);
+    });
+
+    // Handle Donate Button Click
+    $('#cause-list').on('click', '.donate-button', function() {
+        const causeId = $(this).data('cause');
+        window.location.href = `donate.html?cause=${causeId}`;
+    });
+
+    // Donation Stats
+    $.getJSON('data/donations.json', function(data) {
+        const donationLabels = [];
+        const donationAmounts = [];
+        data.forEach(function(donation) {
+            donationLabels.push(donation.cause);
+            donationAmounts.push(donation.amount);
+        });
+
+        // Create Chart
+        const ctx = $('#donationChart');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: donationLabels,
+                datasets: [{
+                    label: 'Donations',
+                    data: donationAmounts,
+                    backgroundColor: 'rgba(40, 167, 69, 0.5)',
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    });
+});5. Additional PagesDonate Page (donate.html)<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donate to a Cause</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header id="main-header"></header>
+
+    <main id="donation-content">
+        <section id="donation-form">
+            <h2>Donate to <span id="cause-title"></span></h2>
+            <form id="donationForm">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Donation Amount</label>
+                    <input type="number" id="amount" name="amount" required>
+                </div>
+                <div class="form-group">
+                    <label for="payment">Payment Method</label>
+                    <select id="payment" name="payment">
+                        <option value="credit-card">Credit Card</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="bank-transfer">Bank Transfer</option>
+                    </select>
+                </div>
+                <button type="submit" id="submit-donation">Donate</button>
+            </form>
+        </section>
+    </main>
+
+    <footer id="main-footer"></footer>
+    <script src="script.js"></script>
+</body>
+</html>About Page (about.html)<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header id="main-header"></header>
+
+    <main id="about-content">
+        <section id="about-us">
+            <h2>About Our Organization</h2>
+            <p>We are dedicated to making the world a better place through the support of generous donors like you. Learn more about our mission, vision, and the causes we support.</p>
+        </section>
+        <section id="team">
+            <h2>Meet Our Team</h2>
+            <div id="team-members">
