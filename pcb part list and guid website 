@@ -1,0 +1,221 @@
+html
+ 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced PCB Design Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Advanced PCB Design Tool</h1>
+    </header>
+    <main>
+        <section id="component-selector">
+            <h2>Select Components</h2>
+            <div id="components-list">
+                <!-- Components will be dynamically loaded here -->
+            </div>
+        </section>
+        <section id="pcb-canvas">
+            <h2>PCB Canvas</h2>
+            <canvas id="pcb" width="1200" height="800"></canvas>
+        </section>
+        <section id="design-info">
+            <h2>Design Information</h2>
+            <div id="info"></div>
+        </section>
+        <section id="controls">
+            <button id="export">Export Design</button>
+            <button id="load">Load Design</button>
+            <input type="file" id="file-input" />
+        </section>
+    </main>
+    <script src="script.js"></script>
+    <script src="lib/three.min.js"></script>
+</body>
+</html>
+
+
+
+
+css
+
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 15px;
+    text-align: center;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+#component-selector, #pcb-canvas, #design-info, #controls {
+    margin: 20px;
+}
+
+#components-list {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.component {
+    display: inline-block;
+    margin: 10px;
+    cursor: pointer;
+}
+
+.component img {
+    width: 100px;
+    height: auto;
+}
+
+#pcb-canvas {
+    border: 1px solid #ccc;
+}
+
+canvas {
+    border: 1px solid #000;
+}
+
+#controls button {
+    margin: 5px;
+}
+
+
+
+
+JavaScript 
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('pcb');
+    const ctx = canvas.getContext('2d');
+    const infoDiv = document.getElementById('info');
+    const componentsList = document.getElementById('components-list');
+    const exportButton = document.getElementById('export');
+    const loadButton = document.getElementById('load');
+    const fileInput = document.getElementById('file-input');
+
+    let selectedComponent = null;
+    let components = [];
+
+    // Load components from JSON
+    fetch('data/components.json')
+        .then(response => response.json())
+        .then(data => {
+            components = data;
+            renderComponents();
+        });
+
+    function renderComponents() {
+        components.forEach(component => {
+            const div = document.createElement('div');
+            div.className = 'component';
+            div.dataset.name = component.name;
+            div.innerHTML = `
+                <img src="components/${component.image}" alt="${component.name}">
+                <p>${component.name}</p>
+            `;
+            div.addEventListener('click', () => {
+                selectedComponent = component;
+                infoDiv.textContent = `Selected: ${selectedComponent.name}`;
+            });
+            componentsList.appendChild(div);
+        });
+    }
+
+    canvas.addEventListener('click', (e) => {
+        if (selectedComponent) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            drawComponent(selectedComponent, x, y);
+        }
+    });
+
+    function drawComponent(component, x, y) {
+        // Clear previous drawings
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw component based on selection
+        if (component.name === 'Resistor') {
+            ctx.fillStyle = '#f00'; // Red color for resistor
+            ctx.fillRect(x - 15, y - 5, 30, 10);
+        } else if (component.name === 'Capacitor') {
+            ctx.fillStyle = '#00f'; // Blue color for capacitor
+            ctx.fillRect(x - 10, y - 10, 20, 20);
+        }
+
+        // Add more conditions for other components if necessary
+    }
+
+    // Export Design
+    exportButton.addEventListener('click', () => {
+        const dataURL = canvas.toDataURL();
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'pcb-design.png';
+        link.click();
+    });
+
+    // Load Design
+    loadButton.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const image = new Image();
+                image.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(image, 0, 0);
+                };
+                image.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 3D Visualization (Optional)
+    // Initialize Three.js for 3D visualization
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Add a simple box to the scene
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+    camera.position.z = 5;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+        renderer.render(scene, camera);
+    }
+    animate();
+});
