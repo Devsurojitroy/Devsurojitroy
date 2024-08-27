@@ -1,0 +1,215 @@
+import os
+import time
+import json
+import schedule
+import requests
+from tkinter import Tk, Button, Label, filedialog, messagebox, Listbox, END, Entry, Frame, Toplevel, StringVar
+from tkinter.ttk import Combobox
+from PIL import Image, ImageTk, ImageOps
+import threading
+
+class WallpaperManager:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Advanced Wallpaper Manager")
+        self.root.geometry("700x600")
+
+        # Variables to manage state
+        self.wallpapers = []
+        self.current_wallpaper_index = 0
+        self.rotation_enabled = False
+        self.user_data = {"theme": "light", "rotation_interval": 1}
+
+        # Load settings from file
+        self.load_settings()
+
+        # GUI Layout
+        self.setup_gui()
+
+    def setup_gui(self):
+        # Frame for Wallpaper Collection Management
+        collection_frame = Frame(self.root)
+        collection_frame.pack(pady=10)
+
+        Label(collection_frame, text="Wallpaper Collection:").pack(side="left")
+        self.wallpaper_listbox = Listbox(collection_frame, width=40, height=15)
+        self.wallpaper_listbox.pack(side="left", padx=10)
+
+        add_button = Button(collection_frame, text="Add", command=self.add_wallpaper)
+        add_button.pack(side="left", padx=5)
+
+        remove_button = Button(collection_frame, text="Remove", command=self.remove_wallpaper)
+        remove_button.pack(side="left", padx=5)
+
+        # Preview and Controls
+        self.preview_label = Label(self.root)
+        self.preview_label.pack(pady=10)
+
+        self.set_button = Button(self.root, text="Set as Wallpaper", command=self.set_wallpaper, state="disabled")
+        self.set_button.pack(pady=10)
+
+        # Rotation Settings
+        rotation_frame = Frame(self.root)
+        rotation_frame.pack(pady=10)
+
+        Label(rotation_frame, text="Rotation Interval (minutes):").pack(side="left", padx=5)
+        self.interval_entry = Entry(rotation_frame, width=5)
+        self.interval_entry.insert(0, str(self.user_data["rotation_interval"]))
+        self.interval_entry.pack(side="left", padx=5)
+
+        self.rotation_button = Button(rotation_frame, text="Start Rotation", command=self.toggle_rotation, state="disabled")
+        self.rotation_button.pack(side="left", padx=5)
+
+        self.stop_rotation_button = Button(rotation_frame, text="Stop Rotation", command=self.stop_rotation, state="disabled")
+        self.stop_rotation_button.pack(side="left", padx=5)
+
+        # Theme Settings
+        theme_frame = Frame(self.root)
+        theme_frame.pack(pady=10)
+
+        Label(theme_frame, text="Theme:").pack(side="left", padx=5)
+        self.theme_combobox = Combobox(theme_frame, values=["light", "dark"])
+        self.theme_combobox.set(self.user_data["theme"])
+        self.theme_combobox.pack(side="left", padx=5)
+        self.theme_combobox.bind("<<ComboboxSelected>>", self.change_theme)
+
+        # User Authentication
+        auth_button = Button(self.root, text="Login/Signup", command=self.open_auth_window)
+        auth_button.pack(pady=10)
+
+    def add_wallpaper(self):
+        files = filedialog.askopenfilenames(
+            filetypes=[("Image Files", "*.jpg *.jpeg *.png *.bmp")]
+        )
+        for file in files:
+            if file not in self.wallpapers:
+                self.wallpapers.append(file)
+                self.wallpaper_listbox.insert(END, os.path.basename(file))
+        if self.wallpapers:
+            self.set_button.config(state="normal")
+            self.rotation_button.config(state="normal")
+            self.display_preview(self.wallpapers[0])
+
+    def remove_wallpaper(self):
+        selected_index = self.wallpaper_listbox.curselection()
+        if selected_index:
+            selected_index = selected_index[0]
+            del self.wallpapers[selected_index]
+            self.wallpaper_listbox.delete(selected_index)
+        if not self.wallpapers:
+            self.set_button.config(state="disabled")
+            self.rotation_button.config(state="disabled")
+            self.stop_rotation()
+
+    def display_preview(self, file_path):
+        img = Image.open(file_path)
+        img.thumbnail((300, 300))
+        self.img_tk = ImageTk.PhotoImage(img)
+        self.preview_label.config(image=self.img_tk)
+
+    def set_wallpaper(self):
+        try:
+            file_path = self.wallpapers[self.current_wallpaper_index]
+            self.apply_wallpaper(file_path)
+            self.display_preview(file_path)
+            messagebox.showinfo("Success", "Wallpaper set successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to set wallpaper: {str(e)}")
+
+    def apply_wallpaper(self, file_path):
+        if os.name == "nt":  # Windows
+            import ctypes
+            ctypes.windll.user32.SystemParametersInfoW(20, 0, file_path, 0)
+        elif os.name == "posix":  # Linux
+            os.system(f"gsettings set org.gnome.desktop.background picture-uri file://{file_path}")
+
+    def toggle_rotation(self):
+        if not self.rotation_enabled:
+            self.start_rotation()
+        else:
+            self.stop_rotation()
+
+    def start_rotation(self):
+        interval = int(self.interval_entry.get())
+        schedule.every(interval).minutes.do(self.rotate_wallpaper)
+        self.rotation_enabled = True
+        self.rotation_button.config(text="Pause Rotation", state="normal")
+        self.stop_rotation_button.config(state="normal")
+        threading.Thread(target=self.run_schedule, daemon=True).start()
+
+    def stop_rotation(self):
+        schedule.clear()
+        self.rotation_enabled = False
+        self.rotation_button.config(text="Start Rotation", state="normal")
+        self.stop_rotation_button.config(state="disabled")
+
+    def rotate_wallpaper(self):
+        if self.wallpapers:
+            self.current_wallpaper_index = (self.current_wallpaper_index + 1) % len(self.wallpapers)
+            self.set_wallpaper()
+
+    def run_schedule(self):
+        while self.rotation_enabled:
+            schedule.run_pending()
+            time.sleep(1)
+
+    def change_theme(self, event):
+        theme = self.theme_combobox.get()
+        self.user_data["theme"] = theme
+        self.apply_theme()
+
+    def apply_theme(self):
+        theme = self.user_data["theme"]
+        if theme == "dark":
+            self.root.config(bg="black")
+            self.preview_label.config(bg="black", fg="white")
+        else:
+            self.root.config(bg="white")
+            self.preview_label.config(bg="white", fg="black")
+
+    def open_auth_window(self):
+        auth_window = Toplevel(self.root)
+        auth_window.title("Login/Signup")
+        auth_window.geometry("300x200")
+
+        Label(auth_window, text="Username:").pack(pady=10)
+        self.username_entry = Entry(auth_window)
+        self.username_entry.pack(pady=5)
+
+        Label(auth_window, text="Password:").pack(pady=10)
+        self.password_entry = Entry(auth_window, show="*")
+        self.password_entry.pack(pady=5)
+
+        login_button = Button(auth_window, text="Login", command=self.login)
+        login_button.pack(pady=10)
+
+        signup_button = Button(auth_window, text="Signup", command=self.signup)
+        signup_button.pack(pady=10)
+
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        # Simulate login process
+        messagebox.showinfo("Login", f"Logged in as {username}")
+
+    def signup(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        # Simulate signup process
+        messagebox.showinfo("Signup", f"Signed up as {username}")
+
+    def save_settings(self):
+        with open("settings.json", "w") as f:
+            json.dump(self.user_data, f)
+
+    def load_settings(self):
+        if os.path.exists("settings.json"):
+            with open("settings.json", "r") as f:
+                self.user_data = json.load(f)
+        else:
+            self.save_settings()
+
+if __name__ == "__main__":
+    root = Tk()
+    app = WallpaperManager(root)
+    root.mainloop()
