@@ -1,0 +1,361 @@
+using c++
+.
+.
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <MPU6050.h>
+#include <DHT.h>
+#include <WiFi.h>
+#include <BluetoothSerial.h>
+#include <TinyGPS++.h>
+#include <ArduinoJson.h>
+#include <FS.h>
+#include <SPIFFS.h>
+
+// Constants for display
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C
+
+// Initialize the display
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Initialize IMU, temperature sensor, and GPS
+MPU6050 mpu;
+DHT dht(2, DHT22); // DHT22 connected to pin 2
+TinyGPSPlus gps;
+HardwareSerial Serial1(1); // GPS serial
+
+// Variables for sensor data
+float temperature = 0;
+int batteryLevel = 100; // Simulated value
+float latitude = 0.0, longitude = 0.0;
+
+// Animation variables
+int reticleAngle = 0;
+int alertCounter = 0;
+
+// Networking setup (WiFi and Bluetooth)
+const char* ssid = "your_SSID";
+const char* password = "your_PASSWORD";
+WiFiClient wifiClient;
+BluetoothSerial btSerial;
+
+// Voice commands
+bool voiceCommandMode = false;
+
+// 3D Graphics (Placeholder)
+// You might need additional libraries or hardware for advanced 3D graphics
+// This is a simplified representation
+
+enum Screen { MAIN, DATA, ALERT, SETTINGS, AR };
+Screen currentScreen = MAIN;
+
+void setup() {
+  Serial.begin(9600);
+  Serial1.begin(9600); // GPS serial
+
+  // Initialize display
+  if (!display.begin(SSD1306_I2C_ADDRESS, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;);
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+
+  // Initialize IMU
+  mpu.initialize();
+
+  // Initialize temperature sensor
+  dht.begin();
+
+  // Initialize GPS
+  if (!SPIFFS.begin()) {
+    Serial.println("Failed to initialize SPIFFS");
+  }
+
+  // Initialize WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("Connected to WiFi");
+
+  // Initialize Bluetooth
+  btSerial.begin("IronManHUD");
+
+  // Display initial HUD
+  updateHUD();
+}
+
+void loop() {
+  // Read sensor data
+  temperature = dht.readTemperature();
+  int sensorBatteryLevel = analogRead(A0); // Simulated battery level
+  batteryLevel = map(sensorBatteryLevel, 0, 1023, 0, 100);
+
+  // Read IMU data
+  Vector normAccel = mpu.getAcceleration();
+  float accelX = normAccel.x;
+  float accelY = normAccel.y;
+  float accelZ = normAccel.z;
+
+  // Read GPS data
+  while (Serial1.available() > 0) {
+    gps.encode(Serial1.read());
+    if (gps.location.isUpdated()) {
+      latitude = gps.location.lat();
+      longitude = gps.location.lng();
+    }
+  }
+
+  // Update HUD based on current screen
+  updateHUD(accelX, accelY, accelZ, temperature, latitude, longitude);
+
+  // Handle button and voice input for screen change
+  handleInputs();
+
+  // Fetch and display external data
+  fetchExternalData();
+
+  delay(100); // Update every 100ms
+}
+
+void updateHUD(float accelX, float accelY, float accelZ, float temperature, float lat, float lon) {
+  display.clearDisplay();
+
+  switch (currentScreen) {
+    case MAIN:
+      drawReticle();
+      drawIndicators(75, batteryLevel); // Example values
+      break;
+    case DATA:
+      drawAdditionalData(accelX, accelY, accelZ, temperature, lat, lon);
+      break;
+    case ALERT:
+      displayAlert();
+      break;
+    case SETTINGS:
+      displaySettings();
+      break;
+    case AR:
+      displayARGraphics(); // Placeholder for AR graphics
+      break;
+  }
+
+  display.display();
+}
+
+void drawReticle() {
+  // Draw rotating reticle
+  display.drawCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 20, WHITE);
+
+  // Draw rotating crosshair
+  int x1 = SCREEN_WIDTH / 2 + 20 * cos(radians(reticleAngle));
+  int y1 = SCREEN_HEIGHT / 2 + 20 * sin(radians(reticleAngle));
+  int x2 = SCREEN_WIDTH / 2 - 20 * cos(radians(reticleAngle));
+  int y2 = SCREEN_HEIGHT / 2 - 20 * sin(radians(reticleAngle));
+  display.drawLine(x1, y1, x2, y2, WHITE);
+
+  reticleAngle = (reticleAngle + 5) % 360; // Rotate the reticle
+}
+
+void drawIndicators(int health, int power) {
+  // Draw health bar
+  display.drawRect(10, 10, 40, 10, WHITE);
+  display.fillRect(10, 10, health * 0.4, 10, RED);
+
+  // Draw power bar
+  display.drawRect(80, 10, 40, 10, WHITE);
+  display.fillRect(80, 10, power * 0.4, 10, BLUE);
+}
+
+void drawAdditionalData(float accelX, float accelY, float accelZ, float temperature, float lat, float lon) {
+  display.setCursor(0, 30);
+  display.print("TEMP: ");
+  display.print(temperature);
+  display.print(" C");
+
+  display.setCursor(0, 40);
+  display.print("BATTERY: ");
+  display.print(batteryLevel);
+  display.print(" %");
+
+  display.setCursor(0, 50);
+  display.print("ACCEL X: ");
+  display.print(accelX, 2);
+
+  display.setCursor(0, 60);
+  display.print("ACCEL Y: ");
+  display.print(accelY, 2);
+
+  display.setCursor(0, 70);
+  display.print("ACCEL Z: ");
+  display.print(accelZ, 2);
+
+  display.setCursor(0, 80);
+  display.print("LAT: ");
+  display.print(lat, 6);
+
+  display.setCursor(0, 90);
+  display.print("LON: ");
+  display.print(lon, 6);
+}
+
+void displayAlert() {
+  if (batteryLevel < 20) {
+    alertCounter++;
+    if (alertCounter % 10 < 5) {
+      display.setCursor(60, 50);
+      display.print("LOW BATTERY");
+    }
+  } else {
+    alertCounter = 0;
+  }
+}
+
+void displaySettings() {
+  // Example settings display
+  display.setCursor(0, 10);
+  display.print("Settings:");
+  display.setCursor(0, 20);
+  display.print("1. Option A");
+  display.setCursor(0, 30);
+  display.print("2. Option B");
+}
+
+void displayARGraphics() {
+  // Placeholder for AR graphics
+  // Draw 3D models or overlay effects
+  display.setCursor(0, 10);
+  display.print("AR MODE ON");
+}
+
+void handleInputs() {
+  // Handle button input for screen change
+  if (digitalRead(3) == HIGH) {
+    currentScreen = MAIN;
+  } else if (digitalRead(4) == HIGH) {
+    currentScreen = DATA;
+  } else if (digitalRead(5) == HIGH) {
+    currentScreen = ALERT;
+  } else if (digitalRead(6) == HIGH) {
+    currentScreen = SETTINGS;
+  } else if (digitalRead(7) == HIGH) {
+    currentScreen = AR;
+  }
+
+  // Handle voice commands if enabled
+  if (voiceCommandMode) {
+    // Example voice command handling
+    if (btSerial.available()) {
+      String command = btSerial.readString();
+      if (command == "show data") {
+        currentScreen = DATA;
+      } else if (command == "show alert") {
+        currentScreen = ALERT;
+      } else if (command == "show ar") {
+        currentScreen = AR;
+      } else if (command == "power off") {
+        // Add functionality for power off or other commands
+      }
+    }
+  }
+}
+
+void fetchExternalData() {
+  // Example function to fetch data from an external source
+  if (WiFi.status() == WL_CONNECTED) {
+    // Example: Fetch data from a public API
+    WiFiClient client;
+    if (client.connect("api.example.com", 80)) {
+      client.println("GET /data.json HTTP/1.1");
+      client.println("Host: api.example.com");
+      client.println("Connection: close");
+      client.println();
+
+      String response = "";
+      while (client.available()) {
+        response += client.readString();
+      }
+
+      DynamicJsonDocument doc(1024);
+      deserializeJson(doc, response);
+      String data = doc["some_key"];
+      
+      // Use the fetched data as needed
+      display.setCursor(0, 100);
+      display.print("Data: ");
+      display.print(data);
+    }
+  }
+}
+
+void managePower() {
+  // Function to manage and monitor power consumption
+  // Example: Monitor battery levels and handle low power
+  if (batteryLevel < 10) {
+    // Trigger a low power warning or shutdown procedure
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("LOW POWER");
+    display.display();
+    delay(5000); // Display warning for 5 seconds
+
+    // Optional: Power down or enter a low-power mode
+    // For instance, turn off non-essential components
+  }
+}
+
+void saveSettings() {
+  // Save settings to SPIFFS (file system) or EEPROM
+  File file = SPIFFS.open("/settings.json", "w");
+  if (!file) {
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+
+  // Create a JSON object to store settings
+  DynamicJsonDocument settings(1024);
+  settings["reticle_angle"] = reticleAngle;
+  settings["current_screen"] = currentScreen;
+
+  // Serialize JSON to file
+  serializeJson(settings, file);
+  file.close();
+}
+
+void loadSettings() {
+  // Load settings from SPIFFS (file system) or EEPROM
+  File file = SPIFFS.open("/settings.json", "r");
+  if (!file) {
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+
+  // Deserialize JSON from file
+  DynamicJsonDocument settings(1024);
+  DeserializationError error = deserializeJson(settings, file);
+  if (error) {
+    Serial.println("Failed to read file");
+    return;
+  }
+
+  // Apply settings
+  reticleAngle = settings["reticle_angle"];
+  currentScreen = (Screen)settings["current_screen"];
+
+  file.close();
+}
+
+void setupVoiceCommands() {
+  // Initialize voice command settings or modules
+  // You might need to configure the voice recognition module here
+  voiceCommandMode = true;
+  // Additional setup for voice module if required
+}
